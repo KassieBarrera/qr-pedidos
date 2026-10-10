@@ -24,3 +24,5 @@ plugins {
 }
 
 include(":app")
+include(":qrscanner")
+project(":qrscanner").projectDir = file("../../android_sdk/qrscanner")

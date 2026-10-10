@@ -1,0 +1,115 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "title": "Essence Mascara Lash Princess",
+      "description": "Essence Mascara Lash Princess (dato de prueba)",
+      "category": "beauty",
+      "price": 9.99,
+      "stock": 50,
+      "sku": "SIM-001"
+    },
+    {
+      "id": 2,
+      "title": "Eyeshadow Palette with Mirror",
+      "description": "Eyeshadow Palette with Mirror (dato de prueba)",
+      "category": "beauty",
+      "price": 19.99,
+      "stock": 50,
+      "sku": "SIM-002"
+    },
+    {
+      "id": 3,
+      "title": "Powder Canister",
+      "description": "Powder Canister (dato de prueba)",
+      "category": "beauty",
+      "price": 14.99,
+      "stock": 50,
+      "sku": "SIM-003"
+    },
+    {
+      "id": 4,
+      "title": "Red Lipstick",
+      "description": "Red Lipstick (dato de prueba)",
+      "category": "beauty",
+      "price": 12.99,
+      "stock": 50,
+      "sku": "SIM-004"
+    },
+    {
+      "id": 5,
+      "title": "Red Nail Polish",
+      "description": "Red Nail Polish (dato de prueba)",
+      "category": "beauty",
+      "price": 8.99,
+      "stock": 50,
+      "sku": "SIM-005"
+    },
+    {
+      "id": 6,
+      "title": "Calvin Klein CK One",
+      "description": "Calvin Klein CK One (dato de prueba)",
+      "category": "fragrances",
+      "price": 49.99,
+      "stock": 50,
+      "sku": "SIM-006"
+    },
+    {
+      "id": 7,
+      "title": "Chanel Coco Noir Eau De",
+      "description": "Chanel Coco Noir Eau De (dato de prueba)",
+      "category": "fragrances",
+      "price": 129.99,
+      "stock": 50,
+      "sku": "SIM-007"
+    },
+    {
+      "id": 8,
+      "title": "Dior J'adore",
+      "description": "Dior J'adore (dato de prueba)",
+      "category": "fragrances",
+      "price": 89.99,
+      "stock": 50,
+      "sku": "SIM-008"
+    },
+    {
+      "id": 9,
+      "title": "Dolce Shine Eau de",
+      "description": "Dolce Shine Eau de (dato de prueba)",
+      "category": "fragrances",
+      "price": 69.99,
+      "stock": 50,
+      "sku": "SIM-009"
+    },
+    {
+      "id": 10,
+      "title": "Gucci Bloom Eau de",
+      "description": "Gucci Bloom Eau de (dato de prueba)",
+      "category": "fragrances",
+      "price": 79.99,
+      "stock": 50,
+      "sku": "SIM-010"
+    },
+    {
+      "id": 11,
+      "title": "Annibale Colombo Bed",
+      "description": "Annibale Colombo Bed (dato de prueba)",
+      "category": "furniture",
+      "price": 1899.99,
+      "stock": 50,
+      "sku": "SIM-011"
+    },
+    {
+      "id": 12,
+      "title": "Annibale Colombo Sofa",
+      "description": "Annibale Colombo Sofa (dato de prueba)",
+      "category": "furniture",
+      "price": 2499.99,
+      "stock": 50,
+      "sku": "SIM-012"
+    }
+  ],
+  "total": 12,
+  "skip": 0,
+  "limit": 30
+}
