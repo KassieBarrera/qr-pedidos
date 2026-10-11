@@ -43,23 +43,23 @@
 
 ## Pruebas manuales en dispositivo
 
-> **Pendiente de ejecutar.** Llenar con el dispositivo real o el emulador usado en el video (modelo, versión de Android y cámara).
+> Ejecutadas en el dispositivo físico y grabadas en el [video](https://www.youtube.com/watch?v=r9FU7QaYnqk).
 
-Dispositivo: _____ · Android: _____ · Build: APK debug del tag de entrega
+Dispositivo: HONOR CMA-LX3 · Android 13 (API 33) · Build: APK debug, servicio real
 
 | # | Escenario | Pasos | Esperado | Resultado |
 | --- | --- | --- | --- | --- |
-| M1 | Lectura real con cámara | Escanear `product:1` impreso o en otra pantalla | Se agrega al pedido con aviso | ⬜ |
-| M2 | Permiso rechazado y recuperación | Rechazar el permiso; volver a escanear y aceptar | Mensaje `permissionDenied`; el segundo intento funciona | ⬜ |
-| M3 | Cancelación | Botón Cancelar o atrás en el escáner | Mensaje "Escaneo cancelado." | ⬜ |
-| M4 | QR inválido | Escanear `product:01` o `hola` | Mensaje de QR inválido; no se agrega nada | ⬜ |
-| M5 | Producto inexistente | Escanear `product:999999` | "no encontrado"; no se agrega nada | ⬜ |
-| M6 | Segundo plano durante el escaneo | Abrir el escáner y pulsar Home | La sesión se cancela; la app no se bloquea | ⬜ |
-| M7 | Pedido sin conexión | Cargar el catálogo, activar modo avión, crear un pedido | Aviso sin conexión; pedido Pendiente | ⬜ |
-| M8 | Cierre y reapertura | Cerrar la app por completo y abrirla | El catálogo y el pedido siguen ahí | ⬜ |
-| M9 | Envío y doble toque | Recuperar la conexión y tocar **Enviar pendientes** dos veces | Un solo envío; Confirmado simulado | ⬜ |
-| M10 | Sin reenvío | Tocar de nuevo **Enviar pendientes** | El pedido confirmado no se envía | ⬜ |
-| M11 | Fallos reproducidos (modo simulado) | APK con `API_MODE=fake`: HTTP 500, timeout y conexión cortada | Error, Resultado desconocido y reintento manual con aviso | ⬜ |
+| M1 | Lectura real con cámara | Escanear `product:1` impreso o en otra pantalla | Se agrega al pedido con aviso | ✅ video |
+| M2 | Permiso rechazado y recuperación | Rechazar el permiso; volver a escanear y aceptar | Mensaje `permissionDenied`; el segundo intento funciona | ✅ video |
+| M3 | Cancelación | Botón Cancelar o atrás en el escáner | Mensaje "Escaneo cancelado." | ✅ video |
+| M4 | QR inválido | Escanear `product:01` o `hola` | Mensaje de QR inválido; no se agrega nada | ✅ video |
+| M5 | Producto inexistente | Escanear `product:999999` | "no encontrado"; no se agrega nada | ✅ video |
+| M6 | Segundo plano durante el escaneo | Abrir el escáner y pulsar Home | La sesión se cancela; la app no se bloquea | ⬜ no grabado |
+| M7 | Pedido sin conexión | Cargar el catálogo, activar modo avión, crear un pedido | Aviso sin conexión; pedido Pendiente | ✅ video |
+| M8 | Cierre y reapertura | Cerrar la app por completo y abrirla | El catálogo y el pedido siguen ahí | ✅ video |
+| M9 | Envío y doble toque | Recuperar la conexión y tocar **Enviar pendientes** dos veces | Un solo envío; Confirmado simulado | ✅ video |
+| M10 | Sin reenvío | Tocar de nuevo **Enviar pendientes** | El pedido confirmado no se envía | ✅ video |
+| M11 | Fallos reproducidos (modo simulado) | APK con `API_MODE=fake`: HTTP 500, timeout y conexión cortada | Error, Resultado desconocido y reintento manual con aviso | ⬜ no grabado |
 
 ## Limitaciones conocidas de la evidencia
 

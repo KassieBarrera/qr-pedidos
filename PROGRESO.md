@@ -13,7 +13,7 @@
 | REST, BD y offline (25) | ✅ | Pedidos, líneas, cola manual, POST, 5 estados, búsqueda por ID. Falta probar en dispositivo |
 | Pruebas (10) | 🟡 | 92 pruebas en verde (19 Kotlin + 18 puente + 55 app), matriz en `docs/MATRIZ_PRUEBAS.md`, modo simulado. Faltan las pruebas manuales en dispositivo y el video |
 | UI (10) | ✅ | Concepto "Mostrador": tema propio claro/oscuro, ticket de pedido, talones de historial, estados y contraste ≥ 4.5:1 verificados en emulador |
-| Docs + IA (10) | ⬜ | Sin README raíz ni `AI_USAGE.md` |
+| Docs + IA (10) | 🟡 | README raíz, `AI_USAGE.md` y QR hechos. Faltan los `PENDIENTE` de entrega, el tiempo y las partes ✍️ |
 | Entrega GitHub | ⬜ | Sin Release, AAR, APK ni video |
 
 ## 1. SDK Android (`android_sdk/`)
@@ -92,20 +92,20 @@
 
 **Manual / evidencia**
 - ✅ Matriz de lo ejecutado: [docs/MATRIZ_PRUEBAS.md](docs/MATRIZ_PRUEBAS.md) (falta llenar las pruebas manuales M1–M11)
-- ⬜ Video 3–5 min: cámara real + cancelación + permiso rechazado; pedido offline; cierre y reapertura; envío, doble toque, no reenvío
-- ⬜ Documentar dispositivo (modelo, versión Android)
+- ✅ Video (https://www.youtube.com/watch?v=r9FU7QaYnqk): cámara real + cancelación + permiso rechazado; pedido offline; cierre y reapertura; envío, doble toque, no reenvío
+- ✅ Dispositivo: HONOR CMA-LX3, Android 13 (API 33)
 - ✅ Modo simulado `--dart-define=API_MODE=fake` con fixtures e inyección de fallos ([app_flutter/docs/MODO_SIMULADO.md](app_flutter/docs/MODO_SIMULADO.md))
 
 ## 6. Datos de prueba QR
 
-- ⬜ Carpeta `qr/` con PNG de `product:1/2/3`, inválidos y `product:999999`, + script reproducible (p. ej. `qrencode` o Python `qrcode`)
+- ✅ Carpeta `qr/` con PNG de `product:1/2/3`, inválidos y `product:999999`, + script reproducible (p. ej. `qrencode` o Python `qrcode`)
 - ✅ Doble de prueba para el caso de producto inexistente (999999): `MockClient` en pruebas y 404 en el modo simulado
 
 ## 7. Documentación
 
 - 🟡 `README.md` raíz (hecho; quedan `PENDIENTE` los enlaces de entrega, QR, dispositivo físico y tiempo): arquitectura, contrato SDK/puente, estados, errores, dependencias del AAR, decisiones, herramientas y versiones, dispositivo, tiempo, limitaciones, implementado vs probado vs pendiente, pasos offline, qué haría falta en una API real (idempotency key + consulta de estado)
-- ⬜ `AI_USAGE.md` con las 5 secciones
-- ⬜ Registro de tiempo aproximado
+- 🟡 `AI_USAGE.md` con las 5 secciones (falta completar las partes marcadas con ✍️)
+- 🟡 Registro de tiempo aproximado en [TIEMPO.md](TIEMPO.md) (faltan las horas del 7 al 9 de octubre, marcadas ✍️)
 
 ## 8. Repositorio y entrega
 
@@ -113,7 +113,7 @@
 - ⬜ Revisar que no se suban `local.properties` ni rutas personales
 - ⬜ Repo público en GitHub (`KassieBarrera/qr-pedidos`) — verificar visibilidad
 - ⬜ Tag (p. ej. `v1.0.0`) + **GitHub Release** con `qrscanner-release.aar` y `app-debug.apk`
-- ⬜ Enlaces directos en README a Release, AAR, APK y video
+- 🟡 Enlaces en el README a Release, AAR, APK (tag `v1.0.0`) y video; válidos cuando se publique la Release
 - ⬜ Comprobar acceso en ventana de incógnito
 - ⬜ Enviar URL + hash completo del commit
 
@@ -123,7 +123,7 @@
 2. ~~Contrato SDK + puente~~ ✅ 2026-10-10
 3. ~~Pruebas Dart y Kotlin faltantes~~ ✅ 2026-10-10
 4. ~~Pulido de UI~~ ✅ 2026-10-10
-5. QR, ~~README~~ (borrador ✅), AI_USAGE
+5. ~~QR, README, AI_USAGE~~ ✅ 2026-10-11 (faltan datos de la autora)
 6. Build AAR/APK, Release, video
 
 ## Bitácora
@@ -134,6 +134,7 @@
 | 2026-10-08 | Estructura inicial del SDK Android |
 | 2026-10-09 | `QrScannerActivity` con CameraX + ML Kit, validador + prueba, MethodChannel, escaneo agrega al carrito |
 | 2026-10-10 | Creado este control de avance |
+| 2026-10-11 | QR de prueba con generador Dart y verificación de ida y vuelta 10/10 (subagente Sonnet, revisado); `AI_USAGE.md` (Opus) |
 | 2026-10-11 | Correcciones de UI (contador − n + en el catálogo, botón de envío oculto sin pendientes) y README raíz (subagente Sonnet, revisado). Pruebas sin re-ejecutar por indicación de la autora |
 | 2026-10-10 | Logs de diagnóstico (2 subagentes Sonnet): Logcat `QrSdk`/`QrBridge` y Dart `[qr_pedidos/<area>]`, documentados en `docs/LOGS.md` con trazas reales. Corregido: la base podía abrirse dos veces y, si la apertura fallaba, no se reintentaba |
 | 2026-10-10 | Punto 4 (subagente Sonnet, 2 rondas de revisión con capturas del emulador): tema "Mostrador", buscador local, label "QR Pedidos". Corregido: avisos tapando acciones, títulos débiles, ticket estirado, "desconocido" en caja de error, botón de envío sin estado desactivado |

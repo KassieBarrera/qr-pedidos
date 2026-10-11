@@ -1,0 +1,65 @@
+{
+  "format": "^product:([1-9][0-9]*)$",
+  "codes": [
+    {
+      "file": "valid_product_1.png",
+      "text": "product:1",
+      "category": "valid",
+      "expected": "ID 1 valido; producto de prueba"
+    },
+    {
+      "file": "valid_product_2.png",
+      "text": "product:2",
+      "category": "valid",
+      "expected": "ID 2 valido; producto de prueba"
+    },
+    {
+      "file": "valid_product_3.png",
+      "text": "product:3",
+      "category": "valid",
+      "expected": "ID 3 valido; producto de prueba"
+    },
+    {
+      "file": "invalid_product_0.png",
+      "text": "product:0",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "invalid_product_minus1.png",
+      "text": "product:-1",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "invalid_product_01_leading_zero.png",
+      "text": "product:01",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "invalid_PRODUCT_1_uppercase.png",
+      "text": "PRODUCT:1",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "invalid_product_abc.png",
+      "text": "product:abc",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "invalid_hola.png",
+      "text": "hola",
+      "category": "invalid",
+      "expected": "Formato invalido"
+    },
+    {
+      "file": "notfound_product_999999.png",
+      "text": "product:999999",
+      "category": "notfound",
+      "expected": "Formato valido; producto no encontrado"
+    }
+  ]
+}

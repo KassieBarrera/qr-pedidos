@@ -7,12 +7,12 @@ Entrega del examen técnico **Mobile Software Engineer — Devel Systems**. La a
 | Elemento | Enlace |
 | --- | --- |
 | Repositorio | https://github.com/KassieBarrera/qr-pedidos |
-| Tag / commit de entrega | `PENDIENTE` (tag y hash completo) |
-| GitHub Release | `PENDIENTE` |
-| AAR (`qrscanner-release.aar`) | `PENDIENTE` (adjunto a la Release) |
-| APK debug (`app-debug.apk`) | `PENDIENTE` (adjunto a la Release) |
-| Video de demostración (3–5 min) | `PENDIENTE` |
-| Declaración de IA | `PENDIENTE`: [`AI_USAGE.md`](AI_USAGE.md) aún no existe |
+| Tag de entrega | `v1.0.0` |
+| GitHub Release | [https://github.com/KassieBarrera/qr-pedidos/releases/tag/v1.0.0](https://github.com/KassieBarrera/qr-pedidos/releases/tag/v1.0.0) |
+| AAR (`qrscanner-release.aar`) | [Descargar AAR](https://github.com/KassieBarrera/qr-pedidos/releases/download/v1.0.0/qrscanner-release.aar) |
+| APK debug (`app-debug.apk`) | [Descargar APK](https://github.com/KassieBarrera/qr-pedidos/releases/download/v1.0.0/app-debug.apk) |
+| Video de demostración | [https://www.youtube.com/watch?v=r9FU7QaYnqk](https://www.youtube.com/watch?v=r9FU7QaYnqk) (2:47, vertical; público, no requiere iniciar sesión) |
+| Declaración de IA | [`AI_USAGE.md`](AI_USAGE.md) |
 
 ## Contenido
 
@@ -350,11 +350,11 @@ cd app_flutter && flutter test
 
 > Conteos de la última ejecución registrada (2026-10-10) en [`docs/MATRIZ_PRUEBAS.md`](docs/MATRIZ_PRUEBAS.md); cambios posteriores de UI pendientes de re-ejecutar.
 
-La matriz también detalla qué cubre cada archivo y la correspondencia con la sección 8 del enunciado. Las pruebas manuales M1–M11 en dispositivo están **pendientes** (ver sección 17).
+La matriz también detalla qué cubre cada archivo y la correspondencia con la sección 8 del enunciado. La demostración manual en dispositivo físico está en el [video](https://www.youtube.com/watch?v=r9FU7QaYnqk) (ver secciones 16 y 17).
 
 ## 14. QR de prueba
 
-`PENDIENTE`: la carpeta `qr/` con las imágenes y su script de generación reproducible aún no existen en el repositorio. Mientras tanto, cualquier generador de QR sirve para codificar estos textos:
+Las imágenes están en [`qr/`](qr/) (detalle y uso en [`qr/README.md`](qr/README.md)); para imprimirlas o mostrarlas todas a la vez, use la hoja [`qr/hoja_qr.png`](qr/hoja_qr.png). Cada QR codifica exactamente el texto de la tabla y lleva ese texto impreso debajo. Los IDs 1 a 3 existen en DummyJSON y en el modo simulado.
 
 | Texto codificado | Resultado esperado |
 | --- | --- |
@@ -364,6 +364,24 @@ La matriz también detalla qué cubre cada archivo y la correspondencia con la s
 | `product:0`, `product:-1`, `product:01` | Formato inválido |
 | `PRODUCT:1`, `product:abc`, `hola` | Formato inválido |
 | `product:999999` | Formato válido; producto no encontrado (el doble de prueba es un `MockClient` en las pruebas y un 404 en el modo simulado) |
+
+Para regenerarlas (Dart puro, sin herramientas del sistema):
+
+```bash
+cd tools/qr_generator && dart pub get
+```
+
+```bash
+dart run bin/generate.dart --out ../../qr
+```
+
+Para verificarlas leyendo cada PNG con un decodificador independiente (`zxing2`) y comparando con `qr/manifest.json`:
+
+```bash
+dart run bin/verify.dart --out ../../qr
+```
+
+Última verificación de ida y vuelta: 10/10 códigos decodificados con el texto exacto. La lectura con cámara real queda como prueba manual.
 
 ## 15. Reproducir el flujo offline
 
@@ -384,38 +402,38 @@ Con el APK debug instalado (servicio real):
 | Dispositivo | Android | Qué se verificó | Qué no |
 | --- | --- | --- | --- |
 | Emulador `Medium_Phone_API_37.0` | Android 17 (API 37) | UI en claro y oscuro y estados de carga, vacío, error y offline; permiso de cámara **rechazado** y luego **concedido**; cancelación con **atrás**; trazas en [`docs/LOGS.md`](docs/LOGS.md) | **Lectura de un QR real con la cámara** |
-| Dispositivo físico | — | `PENDIENTE` | `PENDIENTE` |
+| HONOR `CMA-LX3` (físico) | Android 13 (API 33) | Demostración en [video](https://www.youtube.com/watch?v=r9FU7QaYnqk): lectura real de QR con la cámara mediante el SDK, permiso rechazado y recuperación, cancelación, QR inválido y producto inexistente, pedido sin conexión, cierre y reapertura, envío con doble toque y no reenvío de un confirmado, contra DummyJSON real | Paso a segundo plano durante el escaneo (M6) y escenarios del modo simulado (M11) |
 
-El emulador se usó para la UI y el ciclo de permiso/cancelación; no se demostró lectura real de QR con cámara.
+El emulador se usó para la UI, el ciclo de permiso y cancelación, y las trazas de logs. La lectura real de QR con cámara se demostró en el dispositivo físico.
 
 ## 17. Implementado, probado y pendiente
 
 | Elemento | Implementado | Probado | Pendiente |
 | --- | --- | --- | --- |
 | Validación de QR (`QrValidator`) y sesión única (`ScanSessionManager`) | Sí | Pruebas JVM (19 en la matriz) | — |
-| Cámara, permiso y ML Kit (`QrScannerActivity`) | Sí | Emulador: permiso rechazado y concedido, cancelación con atrás | Lectura de QR con cámara real; segundo plano (M6); sin prueba instrumentada |
-| Puente (`MethodChannel`, errores, desconexión) | Sí | 18 pruebas Dart con doble del canal; el Kotlin del plugin se verifica al compilar el APK | Prueba en dispositivo |
+| Cámara, permiso y ML Kit (`QrScannerActivity`) | Sí | Emulador: permiso rechazado y concedido, cancelación con atrás; dispositivo físico: lectura real de QR (video) | Segundo plano (M6); sin prueba instrumentada |
+| Puente (`MethodChannel`, errores, desconexión) | Sí | 18 pruebas Dart con doble del canal; uso real en el dispositivo físico (video) | — |
 | Catálogo REST + SQLite, caché ante fallo | Sí | Pruebas Dart; emulador | — |
-| Pedidos, líneas, migración v2, recuperación de `sending` | Sí | Pruebas Dart (incluye cierre y reapertura de la base) | Cierre y reapertura real en dispositivo (M8) |
-| Cola de envío (5 estados, doble toque, reintento) | Sí | Pruebas Dart con `MockClient` y cliente simulado | Envío contra DummyJSON real y doble toque en dispositivo (M9, M10) |
+| Pedidos, líneas, migración v2, recuperación de `sending` | Sí | Pruebas Dart (incluye cierre y reapertura de la base); cierre y reapertura real en el dispositivo (video) | — |
+| Cola de envío (5 estados, doble toque, reintento) | Sí | Pruebas Dart con `MockClient` y cliente simulado; envío contra DummyJSON real, doble toque y no reenvío en el dispositivo (video) | — |
 | Modo simulado con escenarios de fallo | Sí | Pruebas Dart; trazas en el emulador | M11 |
 | UI "Mostrador" | Sí | Revisión en emulador y pruebas de widgets | Re-ejecutar pruebas tras los últimos cambios de UI |
 | AAR y APK | Compilan | Compilación registrada en la matriz | Publicarlos en la Release |
-| Pruebas manuales M1–M11 | — | — | Pendientes ([`docs/MATRIZ_PRUEBAS.md`](docs/MATRIZ_PRUEBAS.md)) |
-| Video de demostración | — | — | Pendiente |
-| QR de prueba (`qr/` y script) | — | — | Pendiente |
-| `AI_USAGE.md` | — | — | Pendiente |
-| GitHub Release con AAR y APK | — | — | Pendiente |
+| Pruebas manuales ([`docs/MATRIZ_PRUEBAS.md`](docs/MATRIZ_PRUEBAS.md)) | — | M1–M5 y M7–M10 en el video | M6 (segundo plano) y M11 (modo simulado) |
+| Video de demostración | Sí | [Video](https://www.youtube.com/watch?v=r9FU7QaYnqk) en HONOR CMA-LX3, Android 13 | — |
+| QR de prueba (`qr/` y script) | Sí | Generación determinista y verificación de ida y vuelta con `zxing2`: 10/10; lectura con la cámara del dispositivo (video) | — |
+| `AI_USAGE.md` | Sí | — | — |
+| GitHub Release con AAR y APK | Tag `v1.0.0` | — | Publicar y comprobar la descarga en una sesión sin iniciar |
 | Bono iOS | No | — | No se intentó |
 
 ## 18. Tiempo aproximado y uso de IA
 
-- **Tiempo aproximado:** `PENDIENTE (completar por la autora)`. Referencia de fechas de trabajo: bitácora en [`PROGRESO.md`](PROGRESO.md).
-- **Uso de IA:** ver [`AI_USAGE.md`](AI_USAGE.md) (`PENDIENTE`: el archivo aún no existe). La bitácora de `PROGRESO.md` menciona el uso de subagentes de IA en varias etapas.
+- **Tiempo aproximado:** **13.25 horas** en total. El detalle por bloques de trabajo, respaldado por commits y fechas de archivos, está en [`TIEMPO.md`](TIEMPO.md).
+- **Uso de IA:** ver [`AI_USAGE.md`](AI_USAGE.md): Claude Code con Claude Opus 5.5 como agente principal y revisor, y subagentes Claude Sonnet 5.5 para tareas delimitadas.
 
 ## 19. Limitaciones conocidas
 
-- No hay evidencia de lectura de QR con cámara real (ni en emulador ni en dispositivo físico) ni pruebas manuales M1–M11.
+- La demostración manual se probó en un solo dispositivo físico (HONOR CMA-LX3, Android 13). El paso a segundo plano durante el escaneo (M6) no se grabó.
 - `QrScannerActivity` no tiene prueba instrumentada; su lógica de sesión está extraída y probada en la JVM.
 - DummyJSON es simulado: no hay idempotencia ni consulta de estado, así que un `unknown` solo se resuelve con reintento manual advertido; no se promete entrega exactamente una vez.
 - El envío es manual; no hay reintentos automáticos ni servicio en segundo plano.

@@ -1,0 +1,12 @@
+name: qr_generator
+description: Generador y verificador reproducible de los QR de prueba.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  qr: 3.0.2
+  image: 4.5.4
+  zxing2: 0.2.4
