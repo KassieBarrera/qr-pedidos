@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import '../../core/database/app_database.dart';
+import '../../core/logging/app_log.dart';
 import '../../core/network/api_exceptions.dart';
 import '../../core/network/order_api.dart';
 import '../models/order.dart';
@@ -31,6 +32,8 @@ class OrderRepository {
   final Random _random;
 
   Future<SendSummary>? _runningBatch;
+  int _batchCounter = 0;
+  int _currentBatch = 0;
   final Set<String> _sendingIds = {};
   final _changes = StreamController<void>.broadcast();
 
@@ -63,6 +66,12 @@ class OrderRepository {
       lines: List.unmodifiable(lines),
     );
     await database.insertOrder(order);
+    AppLog.i('orders', 'orders.create', {
+      'order': AppLog.shortId(order.id),
+      'lines': order.lines.length,
+      'units': order.totalItems,
+      'total': order.estimatedTotal.toStringAsFixed(2),
+    });
     _changes.add(null);
     return order;
   }
@@ -80,6 +89,7 @@ class OrderRepository {
   Future<SendSummary> sendPending() {
     final running = _runningBatch;
     if (running != null) {
+      AppLog.i('queue', 'queue.batch.joined', {'batch': _currentBatch});
       return running.then(
         (s) => SendSummary(
           confirmed: s.confirmed,
@@ -90,24 +100,37 @@ class OrderRepository {
       );
     }
 
-    final batch = _sendBatch();
+    final batch = _sendBatch(++_batchCounter);
     _runningBatch = batch;
     return batch.whenComplete(() => _runningBatch = null);
   }
 
   /// Reintento manual de un solo pedido. Para `unknown`, la UI debe advertir
   /// antes que el servidor pudo haberlo recibido ya.
-  Future<OrderStatus?> retry(String orderId) {
+  Future<OrderStatus?> retry(String orderId) async {
+    final current = (await database.getOrder(orderId))?.status;
+    if (current == OrderStatus.unknown) {
+      AppLog.w('queue', 'queue.retry', {
+        'order': AppLog.shortId(orderId),
+        'from': 'unknown',
+      });
+    }
     return _sendOne(
       orderId,
       from: const [OrderStatus.pending, OrderStatus.error, OrderStatus.unknown],
     );
   }
 
-  Future<SendSummary> _sendBatch() async {
+  Future<SendSummary> _sendBatch(int batchId) async {
+    _currentBatch = batchId;
+    final watch = Stopwatch()..start();
     final candidates = await database.getOrders(
       statuses: const [OrderStatus.pending, OrderStatus.error],
     );
+    AppLog.i('queue', 'queue.batch.start', {
+      'batch': batchId,
+      'candidates': candidates.length,
+    });
 
     var confirmed = 0, failed = 0, unknown = 0;
     // Del más antiguo al más reciente.
@@ -127,6 +150,13 @@ class OrderRepository {
           break;
       }
     }
+    AppLog.i('queue', 'queue.batch.end', {
+      'batch': batchId,
+      'confirmed': confirmed,
+      'failed': failed,
+      'unknown': unknown,
+      'ms': watch.elapsedMilliseconds,
+    });
     return SendSummary(confirmed: confirmed, failed: failed, unknown: unknown);
   }
 
@@ -136,18 +166,37 @@ class OrderRepository {
     String orderId, {
     required List<OrderStatus> from,
   }) async {
-    if (!_sendingIds.add(orderId)) return null;
+    final short = AppLog.shortId(orderId);
+    if (!_sendingIds.add(orderId)) {
+      AppLog.w('queue', 'queue.order.skip', {
+        'order': short,
+        'reason': 'alreadySending',
+      });
+      return null;
+    }
     try {
       final claimed = await database.claimForSending(
         orderId,
         from: from,
         now: _now(),
       );
-      if (!claimed) return null;
+      if (!claimed) {
+        AppLog.w('queue', 'queue.order.skip', {
+          'order': short,
+          'reason': 'notClaimable',
+        });
+        return null;
+      }
       _changes.add(null);
 
       final order = await database.getOrder(orderId);
       if (order == null) return null;
+      AppLog.i('queue', 'queue.order.send', {
+        'order': short,
+        'attempt': order.attempts,
+        'lines': order.lines.length,
+        'units': order.totalItems,
+      });
 
       try {
         final remoteRef = await api.submit(order);
@@ -157,6 +206,11 @@ class OrderRepository {
           now: _now(),
           remoteRef: remoteRef,
         );
+        AppLog.i('queue', 'queue.order.result', {
+          'order': short,
+          'status': 'confirmed',
+          'ref': remoteRef,
+        });
         return OrderStatus.confirmed;
       } on ApiException catch (e) {
         final status = e.outcomeUnknown
@@ -168,6 +222,12 @@ class OrderRepository {
           now: _now(),
           lastError: e.message,
         );
+        AppLog.w('queue', 'queue.order.result', {
+          'order': short,
+          'status': status.code,
+          'reason': e.message,
+          'httpStatus': e.statusCode,
+        });
         return status;
       } catch (e) {
         // Error inesperado: no sabemos si la solicitud salió.
@@ -177,6 +237,11 @@ class OrderRepository {
           now: _now(),
           lastError: 'Error inesperado: $e',
         );
+        AppLog.e('queue', 'queue.order.result', {
+          'order': short,
+          'status': 'unknown',
+          'reason': 'unexpected',
+        }, e);
         return OrderStatus.unknown;
       }
     } finally {

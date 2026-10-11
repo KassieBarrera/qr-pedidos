@@ -40,6 +40,9 @@ internal class QrScannerActivity : ComponentActivity() {
     }
 
     private val sessions get() = QrScanner.sessions
+    private val log: ScanLogger = SdkLog
+    private val ignoredLimiter = LogRateLimiter()
+    private val frameErrorLimiter = LogRateLimiter()
     private var sessionId = -1L
 
     /** true cuando esta actividad ya no debe procesar detecciones. */
@@ -56,6 +59,8 @@ internal class QrScannerActivity : ComponentActivity() {
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             awaitingPermission = false
+            if (granted) log.i("permission.result session=$sessionId granted=true")
+            else log.w("permission.result session=$sessionId granted=false")
             if (finished.get()) return@registerForActivityResult
             if (granted) startCamera()
             else sessions.fail(sessionId, ScanErrorCode.PERMISSION_DENIED, "Permiso de cámara denegado.")
@@ -64,6 +69,7 @@ internal class QrScannerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sessionId = intent.getLongExtra(EXTRA_SESSION_ID, -1L)
+        log.d("activity.create session=$sessionId recreated=${savedInstanceState != null}")
 
         // Recreada (p. ej. tras muerte del proceso) sin sesion activa con este id: no hay a quien entregar.
         val attached = sessions.attach(
@@ -81,11 +87,13 @@ internal class QrScannerActivity : ComponentActivity() {
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                sessions.cancel(sessionId)
+                log.d("activity.back session=$sessionId")
+                sessions.cancel(sessionId, "back")
             }
         })
 
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            log.w("camera.unavailable session=$sessionId reason=noFeature")
             sessions.fail(sessionId, ScanErrorCode.CAMERA_UNAVAILABLE, "El dispositivo no tiene cámara.")
             return
         }
@@ -93,9 +101,11 @@ internal class QrScannerActivity : ComponentActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
         ) {
+            log.d("permission.result session=$sessionId granted=true source=alreadyGranted")
             startCamera()
         } else {
             awaitingPermission = true
+            log.i("permission.request session=$sessionId")
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -127,7 +137,9 @@ internal class QrScannerActivity : ComponentActivity() {
 
                 provider.unbindAll()
                 provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                log.i("camera.bound session=$sessionId")
             } catch (e: Exception) {
+                log.e("camera.unavailable session=$sessionId reason=bindFailed msg=\"${logText(e.message)}\"", e)
                 sessions.fail(
                     sessionId,
                     ScanErrorCode.CAMERA_UNAVAILABLE,
@@ -141,6 +153,9 @@ internal class QrScannerActivity : ComponentActivity() {
     private fun analyze(scanner: BarcodeScanner, proxy: ImageProxy) {
         val media = proxy.image
         if (media == null || finished.get()) {
+            if (finished.get() && ignoredLimiter.allow()) {
+                log.d("qr.ignored session=$sessionId reason=finished")
+            }
             proxy.close()
             return
         }
@@ -148,14 +163,21 @@ internal class QrScannerActivity : ComponentActivity() {
             val image = InputImage.fromMediaImage(media, proxy.imageInfo.rotationDegrees)
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
-                    if (finished.get()) return@addOnSuccessListener // resultado tardio de ML Kit
+                    if (finished.get()) { // resultado tardio de ML Kit
+                        if (ignoredLimiter.allow()) log.d("qr.ignored session=$sessionId reason=finished")
+                        return@addOnSuccessListener
+                    }
                     val values = barcodes.mapNotNull { it.rawValue }
                     if (values.isEmpty()) return@addOnSuccessListener
                     val productId = values.firstNotNullOfOrNull { QrValidator.validate(it) }
                     if (productId != null) {
+                        log.i("qr.detected session=$sessionId valid=true productId=$productId")
                         finished.set(true)
                         sessions.succeed(sessionId, productId)
                     } else {
+                        val raw = values.first()
+                        log.w("qr.detected session=$sessionId valid=false len=${raw.length}")
+                        log.d("qr.detected.sample session=$sessionId value=\"${logText(raw.take(20))}\"")
                         finished.set(true)
                         sessions.fail(
                             sessionId,
@@ -165,8 +187,16 @@ internal class QrScannerActivity : ComponentActivity() {
                     }
                 }
                 // Un fallo puntual de un fotograma no detiene el escaneo.
+                .addOnFailureListener { e ->
+                    if (frameErrorLimiter.allow()) {
+                        log.d("qr.frame.error session=$sessionId msg=\"${logText(e.message)}\"")
+                    }
+                }
                 .addOnCompleteListener { proxy.close() }
         } catch (e: Exception) {
+            if (frameErrorLimiter.allow()) {
+                log.d("qr.frame.error session=$sessionId msg=\"${logText(e.message)}\"")
+            }
             proxy.close()
         }
     }
@@ -175,6 +205,7 @@ internal class QrScannerActivity : ComponentActivity() {
     private fun releaseResources() {
         finished.set(true)
         if (!released.compareAndSet(false, true)) return
+        if (cameraProvider != null) log.d("camera.unbound session=$sessionId")
         try { cameraProvider?.unbindAll() } catch (_: Exception) {}
         try { barcodeScanner?.close() } catch (_: Exception) {}
         cameraExecutor?.shutdown()
@@ -185,14 +216,16 @@ internal class QrScannerActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        log.d("activity.stop session=$sessionId changingConfig=$isChangingConfigurations awaitingPermission=$awaitingPermission")
         // Segundo plano: se cancela de forma controlada (no se restaura), salvo mientras el
         // diálogo de permiso del sistema deja esta actividad detenida.
-        if (!isChangingConfigurations && !awaitingPermission) sessions.cancel(sessionId)
+        if (!isChangingConfigurations && !awaitingPermission) sessions.cancel(sessionId, "background")
     }
 
     override fun onDestroy() {
+        log.d("activity.destroy session=$sessionId")
         // Si se destruye sin resultado entregado, se cancela; no-op si la sesion ya termino o es otra.
-        sessions.cancel(sessionId)
+        sessions.cancel(sessionId, "destroy")
         releaseResources()
         super.onDestroy()
     }
@@ -241,7 +274,7 @@ internal class QrScannerActivity : ComponentActivity() {
             minimumWidth = dp(120)
             minWidth = dp(120)
             contentDescription = "Cancelar escaneo"
-            setOnClickListener { sessions.cancel(sessionId) }
+            setOnClickListener { sessions.cancel(sessionId, "user") }
         }
         val cancelParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,

@@ -1,17 +1,5 @@
 # app_flutter
 
-A new Flutter project.
+App Flutter de QR Pedidos: catálogo, pedido actual, historial y cola de envío.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+La documentación completa (arquitectura, compilación, pruebas y flujo offline) está en el [README de la raíz](../README.md). El modo simulado se explica en [docs/MODO_SIMULADO.md](docs/MODO_SIMULADO.md).

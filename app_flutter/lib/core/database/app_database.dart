@@ -3,24 +3,34 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../data/models/order.dart';
 import '../../data/models/product.dart';
+import '../logging/app_log.dart';
 
 class AppDatabase {
   /// [factory] y [path] permiten usar una base en memoria en las pruebas.
   final DatabaseFactory? factory;
   final String? path;
-  Database? _database;
 
   AppDatabase({this.factory, this.path});
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initializeDatabase();
-    return _database!;
+  Future<Database>? _opening;
+
+  /// La apertura se comparte: llamadas concurrentes no abren la base dos veces.
+  /// Si falla, se descarta para que el siguiente acceso lo reintente.
+  Future<Database> get database => _opening ??= _openOnce();
+
+  Future<Database> _openOnce() async {
+    try {
+      return await _initializeDatabase();
+    } catch (_) {
+      _opening = null;
+      rethrow;
+    }
   }
 
   Future<void> close() async {
-    await _database?.close();
-    _database = null;
+    final opening = _opening;
+    _opening = null;
+    await (await opening)?.close();
   }
 
   Future<Database> _initializeDatabase() async {
@@ -28,7 +38,7 @@ class AppDatabase {
     final path =
         this.path ?? join(await factory.getDatabasesPath(), 'qr_pedidos.db');
 
-    return factory.openDatabase(
+    final db = await factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
         version: 2,
@@ -38,10 +48,13 @@ class AppDatabase {
           await _createOrders(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
+          AppLog.i('db', 'db.migrate', {'from': oldVersion, 'to': newVersion});
           if (oldVersion < 2) await _createOrders(db);
         },
       ),
     );
+    AppLog.i('db', 'db.open', {'version': 2, 'path': basename(path)});
+    return db;
   }
 
   static Future<void> _createProducts(DatabaseExecutor db) {
@@ -151,6 +164,10 @@ class AppDatabase {
         });
       }
     });
+    AppLog.d('db', 'db.order.insert', {
+      'order': AppLog.shortId(order.id),
+      'lines': order.lines.length,
+    });
   }
 
   Future<List<Order>> getOrders({List<OrderStatus>? statuses}) async {
@@ -225,6 +242,11 @@ class AppDatabase {
         ...from.map((s) => s.code),
       ],
     );
+    AppLog.d('db', 'db.order.claim', {
+      'order': AppLog.shortId(id),
+      'from': from.map((s) => s.code).join(','),
+      'ok': changed == 1,
+    });
     return changed == 1;
   }
 
@@ -248,13 +270,17 @@ class AppDatabase {
       where: 'id = ? AND status = ?',
       whereArgs: [id, OrderStatus.sending.code],
     );
+    AppLog.d('db', 'db.order.finish', {
+      'order': AppLog.shortId(id),
+      'status': status.code,
+    });
   }
 
   /// Al iniciar la app, cualquier pedido que quedó en `sending` (la app se
   /// cerró durante el envío) pasa a `unknown` para decidirlo manualmente.
   Future<int> recoverInterruptedSends(DateTime now) async {
     final db = await database;
-    return db.update(
+    final count = await db.update(
       'orders',
       {
         'status': OrderStatus.unknown.code,
@@ -264,5 +290,11 @@ class AppDatabase {
       where: 'status = ?',
       whereArgs: [OrderStatus.sending.code],
     );
+    if (count > 0) {
+      AppLog.w('db', 'db.recover.interrupted', {'count': count});
+    } else {
+      AppLog.d('db', 'db.recover.interrupted', {'count': 0});
+    }
+    return count;
   }
 }

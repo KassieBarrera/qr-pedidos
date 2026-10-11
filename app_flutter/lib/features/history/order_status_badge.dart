@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../data/models/order.dart';
 
-/// Estado con icono + texto: no depende solo del color.
+/// Sello de estado: icono + texto + color. Nunca depende solo del color.
 class OrderStatusBadge extends StatelessWidget {
   final OrderStatus status;
 
@@ -16,40 +17,37 @@ class OrderStatusBadge extends StatelessWidget {
     OrderStatus.unknown => Icons.help,
   };
 
-  static Color colorFor(OrderStatus status, ColorScheme scheme) =>
-      switch (status) {
-        OrderStatus.pending => scheme.tertiary,
-        OrderStatus.sending => scheme.primary,
-        OrderStatus.confirmed => const Color(0xFF2E7D32),
-        OrderStatus.error => scheme.error,
-        OrderStatus.unknown => const Color(0xFFB26A00),
-      };
-
   @override
   Widget build(BuildContext context) {
-    final color = colorFor(status, Theme.of(context).colorScheme);
+    final style = AppTheme.statusStyle(status, Theme.of(context).brightness);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        color: style.bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: style.fg, width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (status == OrderStatus.sending)
             SizedBox.square(
-              dimension: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: color),
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: style.fg),
             )
           else
-            Icon(iconFor(status), size: 16, color: color),
+            Icon(iconFor(status), size: 18, color: style.fg),
           const SizedBox(width: 6),
-          Text(
-            status.label,
-            style: TextStyle(color: color, fontWeight: FontWeight.w600),
+          Flexible(
+            child: Text(
+              status.label,
+              style: TextStyle(
+                color: style.fg,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
           ),
         ],
       ),

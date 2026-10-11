@@ -10,7 +10,7 @@ Fuente única de verdad para el punto 2. El SDK (`android_sdk/`) y el puente (`q
 | QR inválido | **Resultado terminal** `invalidQr`: la sesión termina al primer QR con formato inválido. No se devuelve el texto leído. |
 | Rotación / cambio de configuración | La actividad declara `configChanges` y **no se recrea**; la cámara sigue. |
 | Segundo plano (`onStop` sin `isChangingConfigurations`) | **Cancela** la sesión de forma controlada con `cancelled`. No se restaura. |
-| Muerte del proceso | Si la actividad se recrea sin sesión activa, termina sin entregar nada (no hay a quién entregar). |
+| Kill del proceso | Si la actividad se recrea sin sesión activa, termina sin entregar nada (no hay a quién entregar). |
 | Hilo de entrega | El callback se ejecuta siempre en el hilo principal. |
 | Resultado por sesión | Exactamente uno. Después de entregar, cualquier detección o cancelación posterior se ignora. |
 | Segunda apertura con sesión activa | El **nuevo** llamador recibe `scanInProgress` de inmediato; la sesión activa no se altera. |
@@ -54,6 +54,9 @@ object QrScanner {
     fun cancelScan(): Boolean
 
     val isScanning: Boolean
+
+    /** Adición no rompiente: activa/silencia los logs de Logcat del SDK (tag QrSdk). Por defecto true. */
+    fun setLoggingEnabled(enabled: Boolean)
 }
 
 object QrValidator {

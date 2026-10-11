@@ -22,6 +22,7 @@ object QrScanner {
     fun startScan(context: Context, callback: ScanCallback)
     fun cancelScan(): Boolean
     val isScanning: Boolean
+    fun setLoggingEnabled(enabled: Boolean)   // logs de Logcat, por defecto true
 }
 object QrValidator { fun validate(qrContent: String): Long? }
 ```
@@ -74,6 +75,16 @@ QrScanner.startScan(this) { result ->            // siempre en el hilo principal
 | Ids de sesión | Cada sesión tiene un id; una actividad antigua no puede completar una sesión nueva |
 
 La lógica de sesión vive en `ScanSessionManager` (JVM puro, sin Android) para poder probarla sin dispositivo.
+
+## Logs
+
+El SDK escribe logs de diagnóstico en Logcat con el tag `QrSdk` (formato `evento clave=valor`, correlacionados con `session=<n>`). No cambian el comportamiento y nunca registran el contenido completo del QR (solo el largo y, en nivel D, los primeros 20 caracteres de un QR inválido). Las detecciones repetidas y los fallos por fotograma se limitan a 1 línea cada 2 s.
+
+```bash
+adb logcat -s QrSdk:V
+```
+
+Para silenciarlos desde una app nativa: `QrScanner.setLoggingEnabled(false)`. Tabla de eventos: `docs/LOGS.md`.
 
 ## Manifiesto
 

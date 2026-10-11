@@ -54,15 +54,17 @@ Future<http.Response> guardedRequest(
   }
 }
 
-ApiException _fromTransport(String detail) {
+/// true si el detalle indica que la solicitud no salió del dispositivo.
+bool isNotSentError(String detail) {
   final lower = detail.toLowerCase();
-  final notSent =
-      lower.contains('failed host lookup') ||
+  return lower.contains('failed host lookup') ||
       lower.contains('connection refused') ||
       lower.contains('network is unreachable') ||
       lower.contains('no address associated');
+}
 
-  return notSent
+ApiException _fromTransport(String detail) {
+  return isNotSentError(detail)
       ? const ApiException(
           'Sin conexión. La solicitud no se envió.',
           isConnectivity: true,

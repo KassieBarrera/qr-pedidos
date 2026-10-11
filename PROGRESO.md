@@ -8,11 +8,11 @@
 
 | Bloque (puntos) | Estado | Comentario |
 | --- | --- | --- |
-| SDK Android (25) | ✅ | API pública `QrScanner`, 5 códigos, cancelación, ciclo de vida, gradlew, 17 pruebas JVM, AAR compila. Falta probar con cámara real |
+| SDK Android (25) | ✅ | API pública `QrScanner`, 5 códigos, cancelación, ciclo de vida, gradlew, 19 pruebas JVM, AAR compila. Falta probar con cámara real |
 | Puente Flutter (20) | ✅ | Plugin local `qr_scanner_bridge/` con `scanProduct`/`cancelScan`, errores tipados, desconexión, 18 pruebas Dart. Falta probar en dispositivo |
 | REST, BD y offline (25) | ✅ | Pedidos, líneas, cola manual, POST, 5 estados, búsqueda por ID. Falta probar en dispositivo |
-| Pruebas (10) | 🟡 | 87 pruebas en verde (17 Kotlin + 18 puente + 52 app), matriz en `docs/MATRIZ_PRUEBAS.md`, modo simulado. Faltan las pruebas manuales en dispositivo y el video |
-| UI (10) | 🟡 | 3 vistas (Catálogo, Pedido, Historial) con estados vacío/offline/error. Falta tema propio y pulido |
+| Pruebas (10) | 🟡 | 92 pruebas en verde (19 Kotlin + 18 puente + 55 app), matriz en `docs/MATRIZ_PRUEBAS.md`, modo simulado. Faltan las pruebas manuales en dispositivo y el video |
+| UI (10) | ✅ | Concepto "Mostrador": tema propio claro/oscuro, ticket de pedido, talones de historial, estados y contraste ≥ 4.5:1 verificados en emulador |
 | Docs + IA (10) | ⬜ | Sin README raíz ni `AI_USAGE.md` |
 | Entrega GitHub | ⬜ | Sin Release, AAR, APK ni video |
 
@@ -69,12 +69,12 @@
 
 ## 4. UI (10 pts)
 
-- ⬜ Tema propio coherente (colores, tipografía, espaciado) — hoy `ColorScheme.fromSeed(teal)` por defecto
+- ✅ Tema propio coherente (`lib/core/theme/app_theme.dart`): tinta `#1F2A44`, ámbar `#F2A33A`, papel `#FAF7F2`, claro y oscuro
 - ✅ Navegación: Catálogo · Pedido actual · Historial/pendientes (p. ej. `NavigationBar`)
 - ✅ Pedido actual: +/- cantidades, quitar, total estimado, botón “Guardar pedido”
 - ✅ Historial: chips de estado con **icono + texto** (no solo color), detalle de error, botón reintentar
-- 🟡 Estados de carga, vacío (sin datos y sin conexión), error y banner offline (hechos; falta revisarlos en dispositivo)
-- 🟡 Feedback visible tras escanear, guardar y enviar (SnackBars); revisar áreas táctiles
+- ✅ Estados de carga, vacío, error y offline (revisados en el emulador)
+- ✅ Respuesta visible tras escanear, guardar y enviar, sin tapar la acción principal; áreas táctiles de 48dp; fuente al 130% sin cortes
 
 ## 5. Pruebas
 
@@ -103,13 +103,13 @@
 
 ## 7. Documentación
 
-- ⬜ `README.md` raíz: arquitectura, contrato SDK/puente, estados, errores, dependencias del AAR, decisiones, herramientas y versiones, dispositivo, tiempo, limitaciones, implementado vs probado vs pendiente, pasos offline, qué haría falta en una API real (idempotency key + consulta de estado)
+- 🟡 `README.md` raíz (hecho; quedan `PENDIENTE` los enlaces de entrega, QR, dispositivo físico y tiempo): arquitectura, contrato SDK/puente, estados, errores, dependencias del AAR, decisiones, herramientas y versiones, dispositivo, tiempo, limitaciones, implementado vs probado vs pendiente, pasos offline, qué haría falta en una API real (idempotency key + consulta de estado)
 - ⬜ `AI_USAGE.md` con las 5 secciones
 - ⬜ Registro de tiempo aproximado
 
 ## 8. Repositorio y entrega
 
-- ⬜ `.gitignore` raíz: `android_sdk/.gradle/`, `android_sdk/.idea/`, `android_sdk/local.properties`, `build/`
+- ✅ `.gitignore` raíz y por componente (`build/`, `.gradle/`, `.dart_tool/`, `local.properties` comprobados con `git check-ignore`)
 - ⬜ Revisar que no se suban `local.properties` ni rutas personales
 - ⬜ Repo público en GitHub (`KassieBarrera/qr-pedidos`) — verificar visibilidad
 - ⬜ Tag (p. ej. `v1.0.0`) + **GitHub Release** con `qrscanner-release.aar` y `app-debug.apk`
@@ -122,8 +122,8 @@
 1. ~~Pedidos + líneas en BD, pantalla de pedido e historial, cola de envío con estados~~ ✅ 2026-10-10
 2. ~~Contrato SDK + puente~~ ✅ 2026-10-10
 3. ~~Pruebas Dart y Kotlin faltantes~~ ✅ 2026-10-10
-4. Pulido de UI
-5. QR, README, AI_USAGE, `.gitignore`, gradlew
+4. ~~Pulido de UI~~ ✅ 2026-10-10
+5. QR, ~~README~~ (borrador ✅), AI_USAGE
 6. Build AAR/APK, Release, video
 
 ## Bitácora
@@ -134,6 +134,9 @@
 | 2026-10-08 | Estructura inicial del SDK Android |
 | 2026-10-09 | `QrScannerActivity` con CameraX + ML Kit, validador + prueba, MethodChannel, escaneo agrega al carrito |
 | 2026-10-10 | Creado este control de avance |
+| 2026-10-11 | Correcciones de UI (contador − n + en el catálogo, botón de envío oculto sin pendientes) y README raíz (subagente Sonnet, revisado). Pruebas sin re-ejecutar por indicación de la autora |
+| 2026-10-10 | Logs de diagnóstico (2 subagentes Sonnet): Logcat `QrSdk`/`QrBridge` y Dart `[qr_pedidos/<area>]`, documentados en `docs/LOGS.md` con trazas reales. Corregido: la base podía abrirse dos veces y, si la apertura fallaba, no se reintentaba |
+| 2026-10-10 | Punto 4 (subagente Sonnet, 2 rondas de revisión con capturas del emulador): tema "Mostrador", buscador local, label "QR Pedidos". Corregido: avisos tapando acciones, títulos débiles, ticket estirado, "desconocido" en caja de error, botón de envío sin estado desactivado |
 | 2026-10-10 | Punto 3 (subagentes Sonnet, revisado): 41 pruebas Dart nuevas, modo simulado con fixtures, matriz de pruebas. Corregido: un HTTP 500 ya no se muestra como "sin conexión" |
 | 2026-10-10 | Punto 2 (con subagentes Sonnet, revisado): SDK con API pública y ciclo de vida, plugin `qr_scanner_bridge`, AAR y APK compilan, 17 pruebas Kotlin + 18 Dart |
 | 2026-10-10 | Punto 1: pedidos, líneas, cola de envío con 5 estados, búsqueda por ID, 3 vistas, 11 pruebas Dart en verde, APK debug compila |

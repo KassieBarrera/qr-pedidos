@@ -129,7 +129,8 @@ void main() {
       find.textContaining('No se incluye en "Enviar pendientes"'),
       findsOneWidget,
     );
-    expect(find.text('Enviar pendientes (0)'), findsOneWidget);
+    // Sin pendientes ni errores, el botón de envío se oculta.
+    expect(find.textContaining('Enviar pendientes ('), findsNothing);
 
     await tester.tap(find.text('Reintentar'));
     await tester.pumpAndSettle();

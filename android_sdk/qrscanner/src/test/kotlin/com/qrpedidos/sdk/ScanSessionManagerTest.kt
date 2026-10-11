@@ -213,4 +213,32 @@ class ScanSessionManagerTest {
         queue.forEach { it.run() }
         assertEquals(1, cb.count())
     }
+
+    @Test
+    fun lateResultIsLoggedAsIgnored() {
+        val lines = mutableListOf<String>()
+        val m = ScanSessionManager({ _, msg, _ -> lines.add(msg) }) { it.run() }
+        val cb = Recorder()
+        val id = m.begin(cb)!!
+        assertTrue(m.succeed(id, 7L))
+        assertFalse(m.fail(id, ScanErrorCode.INVALID_QR, "tarde"))
+        assertEquals(1, cb.count())
+        assertEquals(
+            listOf(
+                "session.begin session=$id",
+                "session.complete session=$id result=success productId=7",
+                "session.ignored session=$id reason=alreadyTerminated",
+            ),
+            lines,
+        )
+    }
+
+    @Test
+    fun staleIdIsLoggedAsIgnored() {
+        val lines = mutableListOf<String>()
+        val m = ScanSessionManager({ _, msg, _ -> lines.add(msg) }) { it.run() }
+        val id = m.begin(Recorder())!!
+        assertFalse(m.succeed(id + 99, 1L))
+        assertTrue(lines.contains("session.ignored session=${id + 99} reason=staleId"))
+    }
 }

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:qr_scanner_bridge/qr_scanner_bridge.dart';
 
 import '../../core/format.dart';
+import '../../core/logging/app_log.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/quantity_stepper.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../data/models/product.dart';
 import '../../data/repositories/product_repository.dart';
 import '../order/cart_controller.dart';
@@ -29,11 +33,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
   bool isOffline = false;
   String? loadError;
   bool isScanning = false;
+  String query = '';
+  final searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     loadProducts();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    searchController.clear();
+    setState(() => query = '');
   }
 
   Future<void> loadProducts() async {
@@ -68,7 +85,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Future<void> scanProduct() async {
-    if (isScanning) return;
+    if (isScanning) {
+      AppLog.w('scanner', 'scanner.rejected', {
+        'reason': 'scanInProgress',
+        'source': 'ui',
+      });
+      return;
+    }
     setState(() => isScanning = true);
 
     try {
@@ -133,24 +156,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   void _showMessage(String text, {bool isError = false, IconData? icon}) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              icon ??
-                  (isError ? Icons.error_outline : Icons.check_circle_outline),
-              color: Colors.white,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text)),
-          ],
-        ),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
+    showAppSnack(
+      context,
+      text,
+      kind: isError ? FeedbackKind.error : FeedbackKind.success,
+      icon: icon,
     );
+  }
+
+  List<Product> get _filtered {
+    final q = query.trim().toLowerCase().replaceFirst('#', '');
+    if (q.isEmpty) return products;
+    return products
+        .where((p) => p.title.toLowerCase().contains(q) || p.id.toString() == q)
+        .toList();
   }
 
   @override
@@ -169,10 +188,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: isScanning ? null : scanProduct,
+        tooltip: 'Escanear un código QR de producto',
         icon: isScanning
-            ? const SizedBox.square(
+            ? SizedBox.square(
                 dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.onSecondary,
+                ),
               )
             : const Icon(Icons.qr_code_scanner),
         label: const Text('Escanear QR'),
@@ -182,20 +205,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildBody() {
     if (isLoading && products.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingMessage(text: 'Cargando catálogo…');
     }
 
     if (loadError != null) {
-      return _Message(
+      return StateMessage(
         icon: Icons.error_outline,
+        isError: true,
         title: loadError!,
+        body:
+            'Puedes intentarlo de nuevo; tus pedidos guardados no se pierden.',
         actionLabel: 'Reintentar',
         onAction: loadProducts,
       );
     }
 
     if (products.isEmpty) {
-      return _Message(
+      return StateMessage(
         icon: Icons.cloud_off,
         title: 'Todavía no hay catálogo guardado',
         body:
@@ -206,96 +232,174 @@ class _CatalogScreenState extends State<CatalogScreen> {
       );
     }
 
+    final scheme = Theme.of(context).colorScheme;
+    final visible = _filtered;
+
     return Column(
       children: [
         if (refreshError != null)
-          MaterialBanner(
-            leading: Icon(isOffline ? Icons.cloud_off : Icons.sync_problem),
-            content: Text(
-              isOffline
-                  ? 'Sin conexión: mostrando el catálogo guardado.\n$refreshError'
-                  : 'No se pudo actualizar el catálogo; mostrando el '
-                        'guardado.\n$refreshError',
-            ),
-            actions: [
-              TextButton(
-                onPressed: loadProducts,
-                child: const Text('Reintentar'),
+          Material(
+            color: isOffline ? scheme.tertiaryContainer : scheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+              child: Row(
+                children: [
+                  Icon(
+                    isOffline ? Icons.cloud_off : Icons.sync_problem,
+                    color: isOffline
+                        ? scheme.onTertiaryContainer
+                        : scheme.onErrorContainer,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      isOffline
+                          ? 'Sin conexión: mostrando el catálogo guardado.\n$refreshError'
+                          : 'No se pudo actualizar el catálogo; mostrando el '
+                                'guardado.\n$refreshError',
+                      style: TextStyle(
+                        color: isOffline
+                            ? scheme.onTertiaryContainer
+                            : scheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: loadProducts,
+                    child: const Text('Reintentar'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: TextField(
+            controller: searchController,
+            onChanged: (v) => setState(() => query = v),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Buscar por nombre o #id',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Borrar búsqueda',
+                      icon: const Icon(Icons.close),
+                      onPressed: _clearSearch,
+                    ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: loadProducts,
-            child: ListenableBuilder(
-              listenable: widget.cart,
-              builder: (context, _) => ListView.builder(
-                padding: const EdgeInsets.only(bottom: 96),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  final inCart = widget.cart.quantityOf(product.id);
-
-                  return ListTile(
-                    leading: CircleAvatar(child: Text('${product.id}')),
-                    title: Text(product.title),
-                    subtitle: Text(formatMoney(product.price)),
-                    trailing: inCart > 0
-                        ? Badge(
-                            label: Text('$inCart'),
-                            child: const Icon(Icons.shopping_basket),
-                          )
-                        : const Icon(Icons.add_circle_outline),
-                    onTap: () => _addToCart(product),
-                  );
-                },
-              ),
-            ),
-          ),
+          child: visible.isEmpty
+              ? StateMessage(
+                  icon: Icons.search_off,
+                  title: 'Sin resultados',
+                  body: 'Ningún producto coincide con "$query".',
+                  actionLabel: 'Borrar búsqueda',
+                  onAction: _clearSearch,
+                )
+              : RefreshIndicator(
+                  onRefresh: loadProducts,
+                  child: ListenableBuilder(
+                    listenable: widget.cart,
+                    builder: (context, _) => ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 96),
+                      itemCount: visible.length,
+                      separatorBuilder: (_, _) =>
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                      itemBuilder: (context, index) {
+                        final product = visible[index];
+                        final inCart = widget.cart.quantityOf(product.id);
+                        return _ProductTile(
+                          product: product,
+                          inCart: inCart,
+                          onTap: () => _addToCart(product),
+                          onQuantityChanged: (quantity) =>
+                              widget.cart.setQuantity(product.id, quantity),
+                        );
+                      },
+                    ),
+                  ),
+                ),
         ),
       ],
     );
   }
 }
 
-class _Message extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? body;
-  final String actionLabel;
-  final VoidCallback onAction;
+class _ProductTile extends StatelessWidget {
+  final Product product;
+  final int inCart;
+  final VoidCallback onTap;
+  final ValueChanged<int> onQuantityChanged;
 
-  const _Message({
-    required this.icon,
-    required this.title,
-    this.body,
-    required this.actionLabel,
-    required this.onAction,
+  const _ProductTile({
+    required this.product,
+    required this.inCart,
+    required this.onTap,
+    required this.onQuantityChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            if (body != null) ...[
-              const SizedBox(height: 8),
-              Text(body!, textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onAction, child: Text(actionLabel)),
-          ],
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return ListTile(
+      minVerticalPadding: 10,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      onTap: onTap,
+      leading: Container(
+        constraints: const BoxConstraints(minWidth: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
         ),
+        child: Text(
+          '#${product.id}',
+          textAlign: TextAlign.center,
+          style: AppTheme.money(
+            theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+      ),
+      title: Text(
+        product.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.titleSmall,
+      ),
+      subtitle: Text(
+        formatMoney(product.price),
+        style: AppTheme.money(theme.textTheme.bodyMedium),
+      ),
+      // Sin unidades: botón de agregar. Con unidades: el mismo contador − n +
+      // del pedido, para quitar o sumar sin cambiar de pestaña.
+      trailing: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        child: inCart > 0
+            ? QuantityStepper(
+                key: const ValueKey('stepper'),
+                quantity: inCart,
+                itemName: product.title,
+                onChanged: onQuantityChanged,
+              )
+            : IconButton(
+                key: const ValueKey('add'),
+                constraints: const BoxConstraints.tightFor(
+                  width: 48,
+                  height: 48,
+                ),
+                tooltip: 'Agregar ${product.title} al pedido',
+                icon: Icon(Icons.add_circle_outline, color: scheme.primary),
+                onPressed: onTap,
+              ),
       ),
     );
   }

@@ -3,6 +3,7 @@ package com.qrpedidos.qr_scanner_bridge
 import android.app.Activity
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.qrpedidos.sdk.QrScanner
 import com.qrpedidos.sdk.ScanCallback
 import com.qrpedidos.sdk.ScanErrorCode
@@ -35,13 +36,19 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         private var done = false
 
         fun success(value: Any?) {
-            if (done) return
+            if (done) {
+                Log.d(TAG, "reply.skipped reason=alreadyReplied")
+                return
+            }
             done = true
             result.success(value)
         }
 
         fun error(code: String, message: String?) {
-            if (done) return
+            if (done) {
+                Log.d(TAG, "reply.skipped reason=alreadyReplied")
+                return
+            }
             done = true
             result.error(code, message, null)
         }
@@ -62,8 +69,10 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun scanProduct(result: Result) {
+        Log.i(TAG, "call.scanProduct")
         val currentActivity = activity
         if (currentActivity == null) {
+            Log.w(TAG, "call.rejected reason=noActivity")
             result.error(
                 ScanErrorCode.CAMERA_UNAVAILABLE.code,
                 "No hay una actividad disponible para abrir el escáner.",
@@ -73,6 +82,7 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         if (pending != null) {
             // Se rechaza solo la llamada nueva; la pendiente no se toca.
+            Log.w(TAG, "call.rejected reason=scanInProgress")
             result.error(
                 ScanErrorCode.SCAN_IN_PROGRESS.code,
                 "Ya hay un escaneo en curso.",
@@ -84,11 +94,13 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val call = PendingCall(result)
         pending = call
         try {
+            Log.d(TAG, "sdk.start")
             QrScanner.startScan(currentActivity, ScanCallback { scanResult ->
                 // Cada callback responde únicamente a su propia llamada.
                 runOnMain { deliver(call, scanResult) }
             })
         } catch (e: Exception) {
+            Log.e(TAG, "sdk.start.failed msg=\"${e.message?.replace('"', '\'')}\"", e)
             release(call)
             call.error(
                 ScanErrorCode.CAMERA_UNAVAILABLE.code,
@@ -101,8 +113,14 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         // Libera la ranura solo si sigue siendo la de esta llamada.
         release(call)
         when (scanResult) {
-            is ScanResult.Success -> call.success(mapOf("productId" to scanResult.productId))
-            is ScanResult.Failure -> call.error(scanResult.error.code, scanResult.message)
+            is ScanResult.Success -> {
+                Log.i(TAG, "reply.success productId=${scanResult.productId}")
+                call.success(mapOf("productId" to scanResult.productId))
+            }
+            is ScanResult.Failure -> {
+                Log.w(TAG, "reply.error code=${scanResult.error.code}")
+                call.error(scanResult.error.code, scanResult.message)
+            }
         }
     }
 
@@ -117,6 +135,7 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         } catch (_: Exception) {
             false
         }
+        Log.d(TAG, "call.cancelScan cancelled=$cancelled")
         result.success(cancelled)
     }
 
@@ -127,6 +146,7 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private fun cancelAndFlush() {
         val call = pending ?: return
         pending = null
+        Log.w(TAG, "reply.error code=cancelled source=detach")
         try {
             QrScanner.cancelScan()
         } catch (_: Exception) {
@@ -152,16 +172,19 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        Log.d(TAG, "lifecycle.configChange pending=${pending != null}")
         cancelAndFlush()
         activity = null
     }
 
     override fun onDetachedFromActivity() {
+        Log.d(TAG, "lifecycle.detachedFromActivity pending=${pending != null}")
         cancelAndFlush()
         activity = null
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        Log.d(TAG, "lifecycle.detachedFromEngine pending=${pending != null}")
         cancelAndFlush()
         channel?.setMethodCallHandler(null)
         channel = null
@@ -169,5 +192,6 @@ class QrScannerBridgePlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     companion object {
         const val CHANNEL_NAME = "com.qrpedidos/qr_scanner"
+        private const val TAG = "QrBridge"
     }
 }

@@ -21,38 +21,35 @@ class FakeModeBanner extends StatelessWidget {
           showDragHandle: true,
           builder: (_) => ScenarioSheet(scenario: scenario),
         ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 18,
-                  color: scheme.onTertiaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.science_outlined,
+                size: 18,
+                color: scheme.onTertiaryContainer,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: scenario,
+                  builder: (context, _) {
+                    final active =
+                        scenario.catalogFailure != CatalogFailure.none ||
+                        scenario.cartFailure != CartFailure.none;
+                    return Text(
+                      active
+                          ? 'Modo simulado · datos de prueba locales · fallo activo'
+                          : 'Modo simulado · datos de prueba locales',
+                      style: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(color: scheme.onTertiaryContainer),
+                    );
+                  },
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ListenableBuilder(
-                    listenable: scenario,
-                    builder: (context, _) {
-                      final active =
-                          scenario.catalogFailure != CatalogFailure.none ||
-                          scenario.cartFailure != CartFailure.none;
-                      return Text(
-                        active
-                            ? 'Modo simulado · datos de prueba locales · fallo activo'
-                            : 'Modo simulado · datos de prueba locales',
-                        style: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(color: scheme.onTertiaryContainer),
-                      );
-                    },
-                  ),
-                ),
-                Icon(Icons.tune, size: 18, color: scheme.onTertiaryContainer),
-              ],
-            ),
+              ),
+              Icon(Icons.tune, size: 18, color: scheme.onTertiaryContainer),
+            ],
           ),
         ),
       ),

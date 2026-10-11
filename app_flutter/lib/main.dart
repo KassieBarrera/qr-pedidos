@@ -6,8 +6,11 @@ import 'core/config/app_config.dart';
 import 'core/database/app_database.dart';
 import 'core/network/fake/fake_dummyjson_client.dart';
 import 'core/network/fake/fake_scenario.dart';
+import 'core/logging/app_log.dart';
+import 'core/network/logging_client.dart';
 import 'core/network/order_api.dart';
 import 'core/network/product_api.dart';
+import 'core/theme/app_theme.dart';
 import 'data/repositories/order_repository.dart';
 import 'data/repositories/product_repository.dart';
 import 'features/history/orders_controller.dart';
@@ -18,9 +21,24 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   final fakeScenario = AppConfig.useFakeApi ? FakeScenario() : null;
-  final http.Client client = fakeScenario != null
-      ? FakeDummyJsonClient(scenario: fakeScenario)
-      : http.Client();
+  final http.Client client = LoggingClient(
+    fakeScenario != null
+        ? FakeDummyJsonClient(scenario: fakeScenario)
+        : http.Client(),
+  );
+  AppLog.i('app', 'app.start', {
+    'apiMode': fakeScenario != null ? 'fake' : 'real',
+  });
+  if (fakeScenario != null) {
+    AppLog.i('fake', 'fake.mode.active');
+    fakeScenario.addListener(
+      () => AppLog.i('fake', 'fake.scenario', {
+        'catalog': fakeScenario.catalogFailure.name,
+        'cart': fakeScenario.cartFailure.name,
+        'latencyMs': fakeScenario.latency.inMilliseconds,
+      }),
+    );
+  }
   final database = AppDatabase();
 
   final productRepository = ProductRepository(
@@ -66,10 +84,9 @@ class QrPedidosApp extends StatelessWidget {
     return MaterialApp(
       title: 'QR Pedidos',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       home: HomeShell(
         productRepository: productRepository,
         orders: orders,

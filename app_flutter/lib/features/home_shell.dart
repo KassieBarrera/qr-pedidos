@@ -3,6 +3,7 @@ import 'package:qr_scanner_bridge/qr_scanner_bridge.dart';
 
 import '../core/config/app_config.dart';
 import '../core/network/fake/fake_scenario.dart';
+import '../core/widgets/app_feedback.dart';
 import '../data/repositories/product_repository.dart';
 import 'catalog/catalog_screen.dart';
 import 'fake_mode_banner.dart';
@@ -36,23 +37,57 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int index = 0;
 
+  // Un ScaffoldMessenger por pestaña: el aviso se dibuja dentro del Scaffold
+  // de esa pestaña, por encima de su FAB o de su pie, y nunca los tapa.
+  final _catalogMessenger = GlobalKey<ScaffoldMessengerState>();
+  final _orderMessenger = GlobalKey<ScaffoldMessengerState>();
+  final _historyMessenger = GlobalKey<ScaffoldMessengerState>();
+
+  void _select(int value) {
+    for (final key in [_catalogMessenger, _orderMessenger, _historyMessenger]) {
+      key.currentState?.hideCurrentSnackBar();
+    }
+    setState(() => index = value);
+  }
+
+  void _onOrderSaved() {
+    _select(2);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final messenger = _historyMessenger.currentState;
+      if (messenger == null) return;
+      showAppSnackOn(
+        messenger,
+        'Pedido guardado como Pendiente. Envíalo desde Historial.',
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: index,
         children: [
-          CatalogScreen(
-            repository: widget.productRepository,
-            cart: widget.cart,
-            scannerBridge: widget.scannerBridge,
+          ScaffoldMessenger(
+            key: _catalogMessenger,
+            child: CatalogScreen(
+              repository: widget.productRepository,
+              cart: widget.cart,
+              scannerBridge: widget.scannerBridge,
+            ),
           ),
-          CurrentOrderScreen(
-            cart: widget.cart,
-            orders: widget.orders,
-            onSaved: () => setState(() => index = 2),
+          ScaffoldMessenger(
+            key: _orderMessenger,
+            child: CurrentOrderScreen(
+              cart: widget.cart,
+              orders: widget.orders,
+              onSaved: _onOrderSaved,
+            ),
           ),
-          OrdersScreen(controller: widget.orders),
+          ScaffoldMessenger(
+            key: _historyMessenger,
+            child: OrdersScreen(controller: widget.orders),
+          ),
         ],
       ),
       bottomNavigationBar: Column(
@@ -71,7 +106,7 @@ class _HomeShellState extends State<HomeShell> {
       listenable: Listenable.merge([widget.cart, widget.orders]),
       builder: (context, _) => NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (value) => setState(() => index = value),
+        onDestinationSelected: _select,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.storefront_outlined),
